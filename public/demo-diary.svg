@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1120" viewBox="0 0 900 1120">
+  <rect width="900" height="1120" rx="28" fill="#f3efe4"/>
+  <rect x="62" y="48" width="776" height="1024" rx="12" fill="#fffdf7" stroke="#ded8c9" stroke-width="3"/>
+  <path d="M112 197h674M112 357h674M112 517h674M112 677h674M112 837h674" stroke="#e7e2d6" stroke-width="2"/>
+  <text x="126" y="130" font-family="sans-serif" font-size="37" fill="#344b3b">ডেমো স্বাস্থ্য ডায়েরি</text>
+  <text x="126" y="250" font-family="sans-serif" font-size="30" fill="#4d5d50">তারিখ: ১৮ / ১০ / ২০২৬</text>
+  <text x="126" y="414" font-family="sans-serif" font-size="30" fill="#4d5d50">সময়: সকাল ৮:১৫</text>
+  <text x="126" y="574" font-family="sans-serif" font-size="30" fill="#4d5d50">চাপ: ১৩২ / ৮৪</text>
+  <text x="126" y="734" font-family="sans-serif" font-size="30" fill="#4d5d50">পালস: ৭৮</text>
+  <text x="126" y="894" font-family="sans-serif" font-size="30" fill="#4d5d50">শর্করা: ৭.২ mmol/L</text>
+  <rect x="126" y="944" width="400" height="58" rx="10" fill="#edf3ed"/>
+  <text x="149" y="982" font-family="sans-serif" font-size="20" fill="#397b60">Synthetic demo data</text>
+</svg>
