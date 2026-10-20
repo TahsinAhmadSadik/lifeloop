@@ -29,3 +29,55 @@
 .shifa-launcher-mark,.shifa-avatar{background:#397b60;color:#fff}
 
 .photo-import-link{display:flex;align-items:center;gap:6px;margin:-7px 0 12px;padding:0;border:0;background:transparent;color:#397b60;font-size:10px;font-weight:600}.photo-import-link:hover{text-decoration:underline}
+
+/* --- Language Toggle Button (Minimal Green Pill) --- */
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.lang-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--mint);
+  border: 1px solid #dbe6dc;
+  border-radius: 20px;
+  padding: 2px 3px;
+}
+
+.lang-btn {
+  border: 0;
+  background: transparent;
+  color: #647b6e;
+  font-size: 10px;
+  font-weight: 550;
+  padding: 3px 9px;
+  border-radius: 14px;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  line-height: 1.3;
+}
+
+.lang-btn:hover:not(.active) {
+  color: var(--deep);
+  background: rgba(57, 123, 96, 0.08);
+}
+
+.lang-btn.active {
+  background: var(--green);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(40, 90, 65, 0.2);
+}
+
+@media (max-width: 700px) {
+  .topbar-right {
+    gap: 8px;
+  }
+  .lang-btn {
+    font-size: 9px;
+    padding: 2px 7px;
+  }
+}
