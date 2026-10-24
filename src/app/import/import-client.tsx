@@ -69,7 +69,42 @@ export default function ImportClient() {
     setSuccess("রেকর্ড করা সিন্থেটিক নমুনা সফলভাবে লোড হয়েছে!");
   };
 
-  // Call /api/import/vision with the uploaded image
+  // Client-side instant image compression helper (avoids Netlify 6MB & 10s timeouts)
+  const compressImage = (fileToCompress: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(fileToCompress);
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result as string;
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const MAX_SIZE = 1200;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height && width > MAX_SIZE) {
+            height *= MAX_SIZE / width;
+            width = MAX_SIZE;
+          } else if (height > MAX_SIZE) {
+            width *= MAX_SIZE / height;
+            height = MAX_SIZE;
+          }
+
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx?.drawImage(img, 0, 0, width, height);
+
+          // Returns ultra-lightweight JPEG base64 (approx 150-250 KB)
+          resolve(canvas.toDataURL("image/jpeg", 0.8));
+        };
+        img.onerror = reject;
+      };
+      reader.onerror = reject;
+    });
+  };
+
   const handleProcessImage = async () => {
     if (!file && !previewUrl) {
       setError("অনুগ্রহ করে একটি ছবি নির্বাচন করুন বা নমুনা লোড করুন।");
@@ -81,44 +116,34 @@ export default function ImportClient() {
     setSuccess(null);
 
     try {
-      const formData = new FormData();
+      let payloadBase64 = previewUrl;
+
+      // Compress client-side if a real file was uploaded
       if (file) {
-        formData.append("file", file);
+        payloadBase64 = await compressImage(file);
       }
 
       const res = await fetch("/api/import/vision", {
         method: "POST",
-        body: file ? formData : JSON.stringify({ base64: previewUrl }),
-        headers: file ? undefined : { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: payloadBase64 }),
       });
 
-      if (!res.ok) {
-        throw new Error("Gemini ভিশন সার্ভিস থেকে তথ্য পড়তে সমস্যা হয়েছে।");
-      }
-
       const data = await res.json();
+
       if (data.readings && data.readings.length > 0) {
         setDrafts(data.readings);
-        setSuccess("Gemini সফলভাবে ছবি থেকে রিডিং শনাক্ত করেছে!");
+        if (data.isFallback) {
+          setError("লাইভ এপিআই সাড়া দেয়নি, সুরক্ষার স্বার্থে নমুনা খসড়া দেখানো হচ্ছে।");
+        } else {
+          setSuccess("Gemini সফলভাবে ছবি থেকে রিডিং শনাক্ত করেছে!");
+        }
       } else {
         throw new Error("ছবি থেকে কোনো সংখ্যা শনাক্ত করা যায়নি।");
       }
     } catch (err: any) {
-      // Safe fallback data so tests never fail during evaluation
       console.warn("Vision route fallback:", err);
-      setDrafts([
-        {
-          date: new Date().toISOString().split("T")[0],
-          time: "সকাল (Morning)",
-          glucose: 7.2,
-          glucoseUnit: "mmol/L",
-          systolic: 138,
-          diastolic: 84,
-          confidence: "high",
-          notes: "Fallback: AI-parsed clinical draft",
-        },
-      ]);
-      setSuccess("খসড়া প্রস্তুত হয়েছে (ডিটারমিনিস্টিক ফলব্যাক)।");
+      setError("ছবি প্রসেসিংয়ে সমস্যা হয়েছে। অনুগ্রহ করে আবার চেষ্টা করুন।");
     } finally {
       setLoading(false);
     }
