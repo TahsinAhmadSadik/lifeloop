@@ -55,7 +55,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ ...FALLBACK_VISION_DRAFT, reason: "API Key Not Found" });
     }
 
-    // Use gemini-3.8-flash as advised by the Google API
     const model = process.env.GEMINI_MODEL || "gemini-3.8-flash";
 
     const prompt = `
@@ -85,9 +84,11 @@ Output strictly in JSON:
 
     const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
+    // 8.5s hard abort signal to stay safely below Netlify's 10s threshold
     const res = await fetch(geminiUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(8500),
       body: JSON.stringify({
         contents: [
           {
@@ -122,7 +123,8 @@ Output strictly in JSON:
 
     return NextResponse.json({ ...parsed, isFallback: false });
   } catch (err: any) {
-    console.error("Vision exception:", err);
+    console.error("Vision exception caught safely:", err?.name === "TimeoutError" ? "Fetch Timeout (8.5s)" : err.message);
+    // Always return a clean 200 payload — NEVER let Netlify crash with 502
     return NextResponse.json({ ...FALLBACK_VISION_DRAFT, reason: err.message });
   }
 }

@@ -79,7 +79,7 @@ export default function ImportClient() {
         img.src = event.target?.result as string;
         img.onload = () => {
           const canvas = document.createElement("canvas");
-          const MAX_SIZE = 1200;
+          const MAX_SIZE = 800; // Reduced from 1200 to 800 for sub-3s inference
           let width = img.width;
           let height = img.height;
 
@@ -96,8 +96,8 @@ export default function ImportClient() {
           const ctx = canvas.getContext("2d");
           ctx?.drawImage(img, 0, 0, width, height);
 
-          // Returns ultra-lightweight JPEG base64 (approx 150-250 KB)
-          resolve(canvas.toDataURL("image/jpeg", 0.8));
+          // Fast lightweight base64 (~50-80 KB)
+          resolve(canvas.toDataURL("image/jpeg", 0.65));
         };
         img.onerror = reject;
       };
