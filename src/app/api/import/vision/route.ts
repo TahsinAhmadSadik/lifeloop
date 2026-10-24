@@ -49,13 +49,14 @@ export async function POST(req: Request) {
     }
 
     const apiKey = process.env.GEMINI_API_KEY;
-    // নিশ্চিতভাবে gemini-1.5-flash ব্যবহার করা হচ্ছে
-    const model = process.env.GEMINI_MODEL || "gemini-1.5-flash";
 
     if (!apiKey) {
-      console.warn("GEMINI_API_KEY missing in Netlify environment");
+      console.warn("GEMINI_API_KEY missing in environment");
       return NextResponse.json({ ...FALLBACK_VISION_DRAFT, reason: "API Key Not Found" });
     }
+
+    // আপনার যে মডেলটি লোকালে কাজ করছিল সেটিই প্রধান
+    const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
     const prompt = `
 You are a medical OCR engine for LifeLoop.
@@ -82,40 +83,62 @@ Output strictly in JSON:
 }
 `;
 
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
-
-    const res = await fetch(geminiUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [
-              { text: prompt },
-              {
-                inlineData: {
-                  mimeType,
-                  data: base64Data,
-                },
+    const requestPayload = {
+      contents: [
+        {
+          role: "user",
+          parts: [
+            { text: prompt },
+            {
+              inlineData: {
+                mimeType,
+                data: base64Data,
               },
-            ],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.1,
-          responseMimeType: "application/json",
+            },
+          ],
         },
-      }),
-    });
+      ],
+      generationConfig: {
+        temperature: 0.1,
+        responseMimeType: "application/json",
+      },
+    };
 
-    if (!res.ok) {
-      const errText = await res.text();
-      console.error("Gemini Vision HTTP error on Netlify:", errText);
-      return NextResponse.json({ ...FALLBACK_VISION_DRAFT, reason: errText });
+    // সরাসরি gemini-2.5-flash এবং ব্যাকআপ হিসেবে gemini-2.0-flash
+    const candidateEndpoints = [
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    ];
+
+    let activeResponse: Response | null = null;
+    let lastError = "";
+
+    for (const endpoint of candidateEndpoints) {
+      try {
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(requestPayload),
+        });
+
+        if (res.ok) {
+          activeResponse = res;
+          break;
+        } else {
+          lastError = await res.text();
+        }
+      } catch (err: any) {
+        lastError = err.message;
+      }
     }
 
-    const data = await res.json();
+    if (!activeResponse) {
+      console.error("Gemini Vision failed:", lastError);
+      return NextResponse.json({ ...FALLBACK_VISION_DRAFT, reason: lastError });
+    }
+
+    const data = await activeResponse.json();
     const textOutput = data.candidates?.[0]?.content?.parts?.[0]?.text;
     const parsed = JSON.parse(textOutput);
 
